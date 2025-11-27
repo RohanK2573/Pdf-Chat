@@ -1,0 +1,6 @@
+node_modules
+client/my-app/.next
+server/uploads
+.env*
+dist
+coverage

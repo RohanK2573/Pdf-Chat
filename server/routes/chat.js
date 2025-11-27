@@ -7,7 +7,8 @@ import { QdrantVectorStore } from "@langchain/qdrant";
 import { and, desc, eq, sql } from "drizzle-orm";
 
 const router = Router();
-const collectionName = "langchainjs-testing";
+const collectionName =
+  process.env.QDRANT_COLLECTION ?? "pdf-embeddings-768";
 
 const buildTitleFromQuestion = (q = "") => {
   const trimmed = q.trim().replace(/\s+/g, " ");
@@ -29,6 +30,7 @@ router.post("/chat", async (req, res) => {
     const candidateTitle = buildTitleFromQuestion(userQuery);
 
     if (conversationId) {
+
       const existing = await db
         .select({
           id: conversation.id,
@@ -89,35 +91,76 @@ router.post("/chat", async (req, res) => {
       url: env.qdrantUrl,
       collectionName,
     });
+  
+//     const filter = {
+//   must: [
+//     { key: "metadata.user_id", match: { value: "645" } },
+//     {
+//       key: "metadata.doc_id",
+//       match: { value: "pdf-1764141157503-589033736.pdf" },
+//     },
+//   ],
+// };
     const filter = {
-      must: [
-        {
-          should: [
-            { key: "user_id", match: { value: String(userId) } },
-            { key: "metadata.user_id", match: { value: String(userId) } },
-          ],
-        },
-        {
-          should: [
-            { key: "doc_id", match: { value: String(docId) } },
-            { key: "metadata.doc_id", match: { value: String(docId) } },
-          ],
-        },
-      ],
-    };
-    const ret = vectorStore.asRetriever({
-      k: 2,
-      searchParams: { filter },
-    });
+  must: [
+    { key: "metadata.user_id", match: { value: String(userId) } },
+    { key: "metadata.doc_id", match: { value: String(docId) } },
+  ],
+};
+const ret = vectorStore.asRetriever({
+  k: 2,
+  filter,
+});
+// const ret = vectorStore.asRetriever({ k: 2, searchParams: { filter } });
+
+
+    // const filter = {
+    //   must: [
+    //     {
+    //       should: [
+    //         { key: "user_id", match: { value: String(userId) } },
+    //         { key: "metadata.user_id", match: { value: String(userId) } },
+    //       ],
+    //     },
+    //     {
+    //       should: [
+    //         { key: "doc_id", match: { value: String(docId) } },
+    //         { key: "metadata.doc_id", match: { value: String(docId) } },
+    //       ],
+    //     },
+    //   ],
+    // };
+    // const ret = vectorStore.asRetriever({
+    //   k: 2,
+    //   searchParams: { filter },
+    // });
+   
     const rawResult = await ret.invoke(userQuery);
-    const result = Array.isArray(rawResult)
-      ? rawResult.filter(
-          (doc) =>
-            doc?.metadata?.user_id === String(userId) &&
-            doc?.metadata?.doc_id === String(docId)
-        )
-      : [];
-    const hasContext = Array.isArray(result) && result.length > 0;
+    rawResult?.forEach(d => console.log(d.metadata?.doc_id, d.metadata?.user_id));
+console.log('selected', docId, userId);
+// const pick = (doc, key) =>
+//   doc?.metadata?.[key] ??
+//   doc?.metadata?.metadata?.[key] ??
+//   doc?.metadata?.payload?.[key];
+// const result = (rawResult ?? []).filter(d =>
+//   pick(d, 'user_id') === String(userId) &&
+//   pick(d, 'doc_id') === String(docId)
+// );
+
+
+    // const pick = (doc, key) =>
+    //   doc?.metadata?.[key] ??
+    //   doc?.metadata?.metadata?.[key] ??
+    //   doc?.metadata?.payload?.[key];
+    // const result = Array.isArray(rawResult)
+    //   ? rawResult.filter((doc) => {
+    //       const uid = pick(doc, "user_id");
+    //       const did = pick(doc, "doc_id");
+    //       return uid === String(userId) && did === String(docId);
+    //     })
+    //   : [];
+    //       console.log(result)
+    const hasContext = Array.isArray(rawResult) && rawResult.length > 0;
     if (!hasContext) {
       return res.status(200).json({
         msg: "I couldn't find any indexed content for this document yet. Please wait for processing to finish and try again.",
@@ -134,7 +177,7 @@ router.post("/chat", async (req, res) => {
 
     const SYSTEM_PROMPT = `
 You are a helpful AI Assistant who answers the user based on available context from PDF file.
-Context: ${JSON.stringify(result)}
+Context: ${JSON.stringify(rawResult)}
 `;
 
     const aiMsg = await chatClient.invoke([
