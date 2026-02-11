@@ -1,6 +1,6 @@
 # Backend Overview – PDF Scanner AI
 
-This backend ingests user PDFs, embeds them into Qdrant with per-user/doc isolation, and serves chat answers scoped to the selected document. It uses Express, Drizzle (Postgres), BullMQ (Redis), and LangChain + Gemini.
+This backend ingests user PDFs, embeds them into Qdrant with per-user/doc isolation, and serves chat answers scoped to the selected document. It uses Express, Drizzle (Postgres), BullMQ (Redis), and LangChain with Gemini or OpenAI.
 
 ## Architecture & Flow
 
@@ -18,9 +18,9 @@ This backend ingests user PDFs, embeds them into Qdrant with per-user/doc isolat
 
 ### 3) Worker (ingestion)
 - File: `queue/worker.js` (BullMQ Worker; start with `npm run dev:worker` or `node worker.js`).
-- Loads PDF, creates embeddings (Gemini), and writes chunks to Qdrant collection `langchainjs-testing`.
+- Loads PDF, creates embeddings (Gemini or OpenAI), and writes chunks to Qdrant collection `langchainjs-testing`.
 - Payload per point: `user_id`, `doc_id`, `original_name`, `size` (stored under metadata).
-- Requires Redis, Qdrant, Postgres, and `GOOGLE_API_KEY`.
+- Requires Redis, Qdrant, Postgres, and the API keys required by your selected providers.
 
 ### 4) Documents listing
 - Route: `GET /documents`
@@ -48,7 +48,7 @@ This backend ingests user PDFs, embeds them into Qdrant with per-user/doc isolat
 
 ## Key Files
 - `app.js` – Express bootstrap, route mounts, auth, error handler.
-- `config/env.js` – Env loading (PORT, DATABASE_URL, GOOGLE_API_KEY, REDIS/QDRANT).
+- `config/env.js` – Env loading and provider-aware key checks.
 - `middleware/auth.js` – Clerk JWT decode + user upsert.
 - `middleware/error.js` – Generic JSON error handler.
 - `routes/uploads.js` – Upload endpoint + DB record + queue job.
@@ -56,7 +56,7 @@ This backend ingests user PDFs, embeds them into Qdrant with per-user/doc isolat
 - `routes/conversations.js` – List conversations, fetch messages (ownership enforced).
 - `routes/chat.js` – Chat pipeline: conversation resolution, Qdrant retrieval, LLM call, message persistence.
 - `queue/worker.js` – BullMQ worker to embed PDFs into Qdrant with per-user/doc payloads.
-- `llm.js` – Gemini chat and embedding clients.
+- `llm.js` – Provider-switchable chat and embedding clients (Gemini/OpenAI).
 - `db/schema.js` – `app_user`, `document_upload`, `conversation`, `message`.
 - `db/index.js` – Drizzle init.
 - `clients/queue.js` – BullMQ queue connection.
@@ -64,7 +64,13 @@ This backend ingests user PDFs, embeds them into Qdrant with per-user/doc isolat
 ## Environment Variables
 - `PORT` (default 8000)
 - `DATABASE_URL` (Postgres, required)
-- `GOOGLE_API_KEY` (required)
+- `GOOGLE_API_KEY` (required if `LLM_PROVIDER` or `EMBEDDING_PROVIDER` uses `gemini`)
+- `OPENAI_API_KEY` (required if `LLM_PROVIDER` or `EMBEDDING_PROVIDER` uses `openai`)
+- `LLM_PROVIDER` (optional, `gemini` default, or `openai`)
+- `EMBEDDING_PROVIDER` (optional, defaults to `LLM_PROVIDER`)
+- `CHAT_MODEL` (optional, provider default if omitted)
+- `EMBEDDING_MODEL` (optional, provider default if omitted)
+- `EMBEDDING_DIM` (optional, model dimensions override)
 - `REDIS_HOST` (default `localhost`)
 - `REDIS_PORT` (default `6379`)
 - `QDRANT_URL` (default `http://localhost:6333`)

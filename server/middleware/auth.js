@@ -12,9 +12,13 @@ const decodeJwt = (token) => {
 };
 
 export const authMiddleware = async (req, res, next) => {
+  // Allow CORS preflight to pass through without auth; real requests will carry the token.
+  
+  if (req.method === "OPTIONS") return next();
   if (req.path === "/") return next(); // health
 
   const authHeader = req.headers.authorization;
+  console.log("Auth header:", authHeader);
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Missing or invalid Authorization header" });
   }

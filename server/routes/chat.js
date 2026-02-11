@@ -91,6 +91,7 @@ router.post("/chat", async (req, res) => {
       url: env.qdrantUrl,
       collectionName,
     });
+    console.log(env.qdrantUrl)
   
 //     const filter = {
 //   must: [
