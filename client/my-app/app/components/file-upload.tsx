@@ -16,10 +16,6 @@ const FileUploadComponent: React.FC<FileUploadProps> = ({
   onUploaded,
 }) => {
   const { getToken, isLoaded, isSignedIn } = useAuth();
-
-  React.useEffect(() => {
-    console.log("Clerk auth state (upload)", { isLoaded, isSignedIn });
-  }, [isLoaded, isSignedIn]);
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB default limit
   const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -76,9 +72,8 @@ const FileUploadComponent: React.FC<FileUploadProps> = ({
   ].join(" ");
 
   const uploadFile = async () => {
-          console.log("here")
     if (!isLoaded || !isSignedIn) {
-      setError("Sign in to upload files.");
+      setError("Please sign in to upload documents.");
       setUploadStatus("error");
       return;
     }
@@ -93,12 +88,9 @@ const FileUploadComponent: React.FC<FileUploadProps> = ({
     setServerMessage(null);
 
     try {
-
       const formData = new FormData();
       formData.append("pdf", file, file.name);
-      console.log("here")
 
-      // Clerk token used for backend auth; use backend template to ensure JWT
       const token = await getToken();
       if (!token) {
         throw new Error("Auth token unavailable; please re-authenticate.");
@@ -118,7 +110,7 @@ const FileUploadComponent: React.FC<FileUploadProps> = ({
       const data = await response.json();
       setUploadStatus("success");
       setServerMessage(
-        data.message ?? "File uploaded successfully. Processing in background."
+        data.message ?? "Document uploaded. Preparing it for questions now."
       );
       onUploaded?.({
         name: data?.file?.originalName ?? file.name,
@@ -167,7 +159,7 @@ const FileUploadComponent: React.FC<FileUploadProps> = ({
             </button>
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            PDF only, up to 10 MB. Processed securely in the background.
+            PDF only, up to 10 MB. We process your file securely.
           </p>
         </div>
 
@@ -213,7 +205,7 @@ const FileUploadComponent: React.FC<FileUploadProps> = ({
         ) : (
           <Upload className="h-4 w-4" strokeWidth={1.5} />
         )}
-        {uploadStatus === "uploading" ? "Uploading..." : "Process file"}
+        {uploadStatus === "uploading" ? "Uploading..." : "Upload document"}
       </button>
 
       {serverMessage && uploadStatus === "success" && (

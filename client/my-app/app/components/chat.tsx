@@ -46,15 +46,11 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
     return token;
   }, [getToken]);
 
-  React.useEffect(() => {
-    console.log("Clerk auth state (chat)", { isLoaded, isSignedIn });
-  }, [isLoaded, isSignedIn]);
-
   const [messages, setMessages] = React.useState<ChatMessage[]>([
     {
       role: "assistant",
       content:
-        "Upload a PDF on the left, then ask me to summarize or answer questions about it.",
+        "Upload a document, then ask me for summaries, key points, or specific answers.",
     },
   ]);
   const [input, setInput] = React.useState("");
@@ -117,7 +113,7 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
                 {
                   role: "assistant",
                   content:
-                    "Upload a PDF on the left, then ask me to summarize or answer questions about it.",
+                    "Upload a document, then ask me for summaries, key points, or specific answers.",
                 },
               ]
         );
@@ -143,7 +139,7 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
         {
           role: "assistant",
           content:
-            "Select a document from the left to start chatting about it.",
+            "Select a document to start your conversation.",
         },
       ]);
       return;
@@ -170,7 +166,7 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
             {
               role: "assistant",
               content:
-                "Ask a question about this document to start a new conversation.",
+                "Ask your first question about this document.",
             },
           ]);
         }
@@ -207,11 +203,11 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
 
   const askQuestion = async () => {
     if (!isLoaded || !isSignedIn) {
-      setError("Sign in to ask questions.");
+      setError("Please sign in to ask questions.");
       return;
     }
     if (!docId) {
-      setError("Select a document to ask about.");
+      setError("Choose a document first.");
       return;
     }
     if (!input.trim()) {
@@ -255,13 +251,12 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
 
       setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
     } catch (err) {
-            console.log(err)
       const message =
         err instanceof Error ? err.message : "Unexpected error occurred.";
       setError(message);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Sorry, I ran into an error." },
+        { role: "assistant", content: "I hit an issue while generating that answer. Please try again." },
       ]);
     } finally {
       setIsLoading(false);
@@ -269,17 +264,17 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
   };
 
   return (
-    <div className="relative flex w-full flex-col gap-4 h-[70vh] max-h-[70vh] min-h-[60vh] overflow-hidden rounded-2xl border border-white/30 bg-white/30 p-6 shadow-2xl backdrop-blur">
+    <div className="relative flex h-full min-h-[60vh] w-full flex-col gap-4 overflow-hidden rounded-2xl border border-white/30 bg-white/30 p-6 shadow-2xl backdrop-blur">
       <div className="flex items-center gap-3">
         <div className="rounded-xl bg-sky-500/15 p-3 text-sky-600">
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
-            PDF Chat Assistant
+            Document Assistant
           </h3>
           <p className="text-sm text-slate-600">
-            Ask about the selected document.
+            Ask questions about the selected document.
           </p>
         </div>
       </div>
@@ -322,15 +317,15 @@ const ChatComponent: React.FC<{ docId?: string }> = ({ docId }) => {
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Thinking...
+            Generating answer...
           </div>
         )}
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 flex flex-none items-center gap-3 rounded-xl border border-white/30 bg-white/80 p-3 backdrop-blur">
+      <div className="mt-auto flex flex-none items-center gap-3 rounded-xl border border-white/30 bg-white/80 p-3 backdrop-blur">
         <Input
-          placeholder="Ask me to summarize, explain, or find details..."
+          placeholder="Ask for a summary, key points, dates, or specific details..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
