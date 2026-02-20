@@ -10,6 +10,7 @@ const embeddingProvider = normalizedProvider(
 );
 
 const required = ["DATABASE_URL"];
+required.push("CLERK_JWT_ISSUER");
 
 if (llmProvider === "gemini" || embeddingProvider === "gemini") {
   required.push("GOOGLE_API_KEY");
@@ -32,6 +33,9 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   googleApiKey: process.env.GOOGLE_API_KEY,
   openaiApiKey: process.env.OPENAI_API_KEY,
+  clerkJwtIssuer: process.env.CLERK_JWT_ISSUER,
+  clerkAudience: process.env.CLERK_AUDIENCE,
+  clerkAuthorizedParty: process.env.CLERK_AUTHORIZED_PARTY,
   llmProvider,
   embeddingProvider,
   redisHost: process.env.REDIS_HOST ?? "localhost",
