@@ -11,26 +11,51 @@ const parsePositiveNumber = (value) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 };
 
-const ensureProvider = (value, fieldName) => {
+const ensureChatProvider = (value, fieldName) => {
+  if (
+    value === "gemini" ||
+    value === "openai" ||
+    value === "llama3" ||
+    value === "hf_router"
+  ) {
+    return value;
+  }
+  throw new Error(
+    `Invalid ${fieldName} \"${value}\". Use \"gemini\", \"openai\", \"llama3\", or \"hf_router\".`
+  );
+};
+
+const ensureEmbeddingProvider = (value, fieldName) => {
   if (value === "gemini" || value === "openai") return value;
   throw new Error(
     `Invalid ${fieldName} \"${value}\". Use \"gemini\" or \"openai\".`
   );
 };
 
-const LLM_PROVIDER = ensureProvider(
+const LLM_PROVIDER = ensureChatProvider(
   (process.env.LLM_PROVIDER ?? "gemini").toLowerCase(),
   "LLM_PROVIDER"
 );
 
-const EMBEDDING_PROVIDER = ensureProvider(
-  (process.env.EMBEDDING_PROVIDER ?? LLM_PROVIDER).toLowerCase(),
+const EMBEDDING_PROVIDER = ensureEmbeddingProvider(
+  (
+    process.env.EMBEDDING_PROVIDER ??
+    (LLM_PROVIDER === "llama3" || LLM_PROVIDER === "hf_router"
+      ? "gemini"
+      : LLM_PROVIDER)
+  ).toLowerCase(),
   "EMBEDDING_PROVIDER"
 );
 
 const CHAT_MODEL =
   process.env.CHAT_MODEL ??
-  (LLM_PROVIDER === "openai" ? "gpt-4o-mini" : "gemini-2.5-flash");
+  (LLM_PROVIDER === "openai"
+    ? "gpt-4o-mini"
+    : LLM_PROVIDER === "llama3"
+      ? "meta-llama/llama-3.1-8b-instruct"
+      : LLM_PROVIDER === "hf_router"
+        ? "MiniMaxAI/MiniMax-M2.5:novita"
+        : "gemini-2.5-flash");
 
 const EMBEDDING_MODEL =
   process.env.EMBEDDING_MODEL ??
@@ -59,6 +84,26 @@ export const chatClient =
         temperature: 0,
         maxRetries: 2,
       })
+    : LLM_PROVIDER === "llama3"
+      ? new ChatOpenAI({
+          apiKey: env.llamaApiKey,
+          model: CHAT_MODEL,
+          temperature: 0,
+          maxRetries: 2,
+          configuration: {
+            baseURL: env.llamaBaseUrl,
+          },
+        })
+      : LLM_PROVIDER === "hf_router"
+        ? new ChatOpenAI({
+            apiKey: env.hfToken,
+            model: CHAT_MODEL,
+            temperature: 0,
+            maxRetries: 2,
+            configuration: {
+              baseURL: env.hfBaseUrl,
+            },
+          })
     : new ChatGoogleGenerativeAI({
         apiKey: env.googleApiKey,
         model: CHAT_MODEL,
