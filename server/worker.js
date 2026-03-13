@@ -1,13 +1,11 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
-import path from "path";
-import fs from "fs";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { CharacterTextSplitter } from "@langchain/textsplitters";
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { env } from "./config/env.js";
 import { embeddingConfig, embeddingsFactory } from "./llm.js";
+import { getObjectBuffer } from "./clients/s3.js";
 
 const QDRANT_URL = env.qdrantUrl ?? "http://localhost:6333";
 const COLLECTION_NAME = process.env.QDRANT_COLLECTION ?? "pdf-embeddings-768";
@@ -15,27 +13,22 @@ const COLLECTION_NAME = process.env.QDRANT_COLLECTION ?? "pdf-embeddings-768";
 const worker = new Worker(
   "file-upload-queue",
   async (job) => {
-    const { path: pdfPathRaw, docId, userId, originalName, size } = job.data ?? {};
-    const pdfPath = path.resolve(pdfPathRaw ?? job.data ?? "");
-    if (!pdfPath || !fs.existsSync(pdfPath)) {
-      throw new Error(`PDF path not found: ${pdfPath}`);
+    const { docId, userId, originalName, size, s3Key } = job.data ?? {};
+    if (!s3Key) {
+      throw new Error("Missing s3Key in upload job payload");
     }
+
     const uid = userId != null ? String(userId) : null;
     const did = docId != null ? String(docId) : null;
+    const { buffer: pdfBuffer } = await getObjectBuffer(s3Key);
 
-    const loader = new PDFLoader(pdfPath);
-    let rawDocs = await loader.load();
-    const hasText = rawDocs.some(
-      (d) => typeof d.pageContent === "string" && d.pageContent.trim().length > 0
-    );
-    if (!hasText) {
-      const dataBuffer = fs.readFileSync(pdfPath);
-      const parsed = await pdfParse(dataBuffer);
-      const content = parsed?.text ?? "";
-      if (content.trim().length > 0) {
-        rawDocs = [{ pageContent: content, metadata: {} }];
-      }
+    const parsed = await pdfParse(pdfBuffer);
+    const content = parsed?.text ?? "";
+    const rawDocs = [];
+    if (content.trim().length > 0) {
+      rawDocs.push({ pageContent: content, metadata: {} });
     }
+
     const splitter = new CharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
@@ -69,6 +62,7 @@ const worker = new Worker(
         ...(d.metadata || {}),
         doc_id: did,
         user_id: uid,
+        s3_key: s3Key,
         original_name: originalName ?? null,
         size: size ?? null,
       };
@@ -105,8 +99,8 @@ const worker = new Worker(
   {
     concurrency: 100,
     connection: {
-      host: "localhost",
-      port: "6379",
+      host: env.redisHost,
+      port: env.redisPort,
     },
   }
 );

@@ -19,9 +19,17 @@ export const documentUpload = pgTable('document_upload', {
         .references(() => appUser.id, { onDelete: 'cascade' }),
     originalName: text('original_name').notNull(),
     storedAs: text('stored_as').notNull(),
+    storageProvider: text('storage_provider').notNull(),
+    storageKey: text('storage_key').notNull(),
+    mimeType: text('mime_type'),
     size: bigint('size', { mode: 'number' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+    check(
+        'document_upload_storage_provider_check',
+        sql`${table.storageProvider} in ('s3', 'local')`
+    ),
+]);
 
 // 2) A chat session ("thread")
 export const conversation = pgTable('conversation', {

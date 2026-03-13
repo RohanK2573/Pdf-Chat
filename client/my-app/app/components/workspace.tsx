@@ -1,7 +1,7 @@
 'use client';
 
 import { UserButton, useAuth } from "@clerk/nextjs";
-import { FileText, LogOut, Shield, Upload } from "lucide-react";
+import { FileText, Shield, Upload } from "lucide-react";
 import React from "react";
 import ChatComponent from "./chat";
 import FileUploadComponent from "./file-upload";
@@ -16,17 +16,10 @@ type UploadedMeta = {
 const AppWorkspace: React.FC = () => {
   const { getToken, isLoaded, isSignedIn } = useAuth();
 
- React.useEffect(() => {
-    console.log("AppWorkspace mounted - RIGHT NOW");
-  }, []);
-
   React.useEffect(() => {
-    console.log("Clerk auth state (workspace)", { isLoaded, isSignedIn });
     if (!isLoaded || !isSignedIn) return;
     (async () => {
-
-      const token = await getToken();
-
+      await getToken();
     })().catch((err) => console.error("Token fetch failed", err));
   }, [getToken, isLoaded, isSignedIn]);
 
@@ -38,7 +31,6 @@ const AppWorkspace: React.FC = () => {
   const loadDocuments = React.useCallback(async () => {
     if (!isLoaded || !isSignedIn) return;
     try {
-      console.log("Loading documents with Clerk token ready");
       const token = await getToken();
       if (!token) {
         throw new Error("Auth token unavailable; please re-authenticate.");
@@ -78,10 +70,10 @@ const AppWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-sky-100 via-white to-indigo-100 px-4 py-8 sm:px-6 lg:px-10">
+    <div className="relative min-h-[100dvh] bg-gradient-to-br from-sky-100 via-white to-indigo-100 px-4 py-4 sm:px-6 lg:px-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.18),transparent_25%),radial-gradient(circle_at_80%_0%,rgba(99,102,241,0.16),transparent_25%),radial-gradient(circle_at_50%_80%,rgba(45,212,191,0.18),transparent_20%)]" />
 
-      <div className="relative mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-w-6xl flex-col gap-4">
         <header className="flex items-center justify-between rounded-2xl border border-white/30 bg-white/40 px-5 py-3 shadow-lg backdrop-blur">
           <div className="flex items-center gap-3 text-slate-900">
             <div className="rounded-xl bg-slate-900 text-white p-2 shadow-sm">
@@ -89,9 +81,9 @@ const AppWorkspace: React.FC = () => {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                PDF Scanner AI
+                Document Workspace
               </p>
-              <p className="text-sm font-semibold">Chat with your PDFs</p>
+              <p className="text-sm font-semibold">Ask better questions, faster</p>
             </div>
           </div>
 
@@ -104,37 +96,38 @@ const AppWorkspace: React.FC = () => {
           </div>
         </header>
 
-        <main className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-1">
+        <main className="grid min-h-0 flex-1 gap-6 lg:grid-cols-3">
+          <div className="min-h-0 lg:col-span-1">
+            <div className="flex h-full min-h-0 flex-col gap-4 pr-1">
             <div className="rounded-2xl border border-white/30 bg-white/30 p-5 shadow-xl backdrop-blur">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900">
-                    Upload PDF
+                    Add document
                   </h2>
                   <p className="text-sm text-slate-600">
-                    Drag & drop or browse. Max 10 MB.
+                    Upload a PDF to start analysis. Max 10 MB.
                   </p>
                 </div>
               </div>
               <FileUploadComponent onUploaded={handleUploaded} />
               <p className="mt-3 text-xs text-slate-500">
-                After upload, processing runs in the background. You can start
-                asking questions immediately.
+                Processing runs in the background. Answers improve as indexing
+                completes.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/30 bg-white/25 p-4 shadow-lg backdrop-blur">
+            <div className="min-h-0 flex flex-1 flex-col rounded-2xl border border-white/30 bg-white/25 p-4 shadow-lg backdrop-blur">
               <div className="mb-3 flex items-center gap-2 text-slate-800">
                 <FileText className="h-4 w-4 text-sky-600" />
-                <p className="text-sm font-semibold">Your uploads</p>
+                <p className="text-sm font-semibold">Recent documents</p>
               </div>
               {recentUploads.length === 0 ? (
                 <p className="text-sm text-slate-600">
-                  No uploads yet. Drop a PDF to get started.
+                  No documents yet. Upload your first PDF to begin.
                 </p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                   {recentUploads.map((file, idx) => (
                     <li
                       key={`${file.name}-${idx}`}
@@ -164,9 +157,10 @@ const AppWorkspace: React.FC = () => {
                 </ul>
               )}
             </div>
+            </div>
           </div>
 
-          <div className="lg:col-span-2 min-h-0">
+          <div className="min-h-0 lg:col-span-2">
             <ChatComponent docId={selectedDocId ?? undefined} />
           </div>
         </main>

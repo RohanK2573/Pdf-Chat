@@ -34,14 +34,6 @@ export default function LandingPage() {
               </button>
             </SignUpButton>
           </SignedOut>
-          <SignedIn>
-            <Link
-              href="/app"
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
-            >
-              Go to app
-            </Link>
-          </SignedIn>
         </div>
       </header>
 
@@ -54,9 +46,8 @@ export default function LandingPage() {
             Chat with your PDFs in a beautiful, secure workspace.
           </h1>
           <p className="text-lg text-slate-700">
-            Upload documents, then ask questions and get instant answers—powered
-            by your own content. Built with Next.js, Clerk auth, and a
-            glassmorphic UI.
+            Upload documents, ask focused questions, and get clear answers
+            grounded in your files. Move from reading to decisions in minutes.
           </p>
         </div>
 
@@ -85,7 +76,7 @@ export default function LandingPage() {
           </SignedIn>
         </div>
 
-        <div className="relative w-full max-w-5xl">
+        <div id="how-it-works" className="relative w-full max-w-5xl">
           <div className="absolute inset-0 rounded-3xl bg-white/30 blur-3xl" />
           <div className="relative rounded-3xl border border-white/40 bg-white/60 p-8 shadow-2xl backdrop-blur">
             <div className="grid gap-6 md:grid-cols-2">
@@ -95,8 +86,8 @@ export default function LandingPage() {
                   Upload your PDF
                 </h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  Drag-and-drop or browse to send your document securely to the
-                  backend for processing.
+                  Add a document and we prepare it automatically for fast,
+                  reliable Q&A.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/40 bg-white/40 p-6 text-left shadow-md backdrop-blur">
@@ -105,8 +96,8 @@ export default function LandingPage() {
                   Ask questions instantly
                 </h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  Get concise answers grounded in your PDF content with our AI
-                  assistant—no raw JSON or technical details shown.
+                  Ask anything and get concise answers with references from your
+                  selected document.
                 </p>
               </div>
             </div>

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PDF Scanner AI",
-  description: "Upload PDFs and chat with an AI assistant.",
+  title: "Document Workspace",
+  description: "Upload documents and get fast, grounded answers in one workspace.",
 };
 
 export default function RootLayout({

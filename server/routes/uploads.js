@@ -1,35 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import { uploadQueue } from "../clients/queue.js";
 import { db } from "../db/index.js";
 import { documentUpload } from "../db/schema.js";
-import { desc, eq } from "drizzle-orm";
+import { uploadPdfToS3 } from "../clients/s3.js";
 
 const router = Router();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const uploadsDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (_req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
   },
@@ -39,25 +18,46 @@ router.post("/upload/pdf", upload.single("pdf"), async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthenticated" });
   if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  if (!req.file.buffer?.length) {
+    return res.status(400).json({ message: "Uploaded file is empty" });
+  }
+
+  const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const docId = `pdf-${uniqueSuffix}`;
+  const s3Key = `users/${userId}/documents/${docId}-${safeName}`;
+
+  try {
+    await uploadPdfToS3(
+      req.file.buffer,
+      s3Key,
+      req.file.mimetype || "application/pdf"
+    );
+  } catch (err) {
+    console.error("Failed to upload file to S3", err);
+    return res.status(500).json({ message: "Failed to upload file" });
+  }
 
   await uploadQueue.add("file-ready", {
-    filename: req.file.originalname,
-    destination: req.file.destination,
-    path: req.file.path,
     userId,
-    docId: req.file.filename,
+    docId,
     originalName: req.file.originalname,
     size: req.file.size,
+    s3Key,
+    mimeType: req.file.mimetype || "application/pdf",
   });
 
   try {
     await db
       .insert(documentUpload)
       .values({
-        id: req.file.filename,
+        id: docId,
         userId,
         originalName: req.file.originalname,
-        storedAs: req.file.filename,
+        storedAs: s3Key,
+        storageProvider: "s3",
+        storageKey: s3Key,
+        mimeType: req.file.mimetype || "application/pdf",
         size: BigInt(req.file.size),
       })
       .onConflictDoNothing();
@@ -68,11 +68,12 @@ router.post("/upload/pdf", upload.single("pdf"), async (req, res) => {
   return res.json({
     message: "uploaded",
     file: {
+      id: docId,
       originalName: req.file.originalname,
-      storedAs: req.file.filename,
+      storedAs: s3Key,
       size: req.file.size,
-      path: req.file.path,
-      docId: req.file.filename,
+      s3Key,
+      docId,
     },
   });
 });

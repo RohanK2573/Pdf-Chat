@@ -106,6 +106,7 @@ router.post("/chat", async (req, res) => {
   must: [
     { key: "metadata.user_id", match: { value: String(userId) } },
     { key: "metadata.doc_id", match: { value: String(docId) } },
+    { key: "metadata.doc_id", match: { value: String(docId) } },
   ],
 };
 const ret = vectorStore.asRetriever({

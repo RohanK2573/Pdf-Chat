@@ -2,5 +2,7 @@ node_modules
 client/my-app/.next
 server/uploads
 .env*
+!.env*.example
+!**/.env*.example
 dist
 coverage
