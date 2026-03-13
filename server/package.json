@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node --watch app.js",
     "dev:worker": "node --watch worker.js",
+    "start": "node app.js",
+    "start:worker": "node worker.js",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio"
