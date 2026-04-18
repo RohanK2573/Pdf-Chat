@@ -10,7 +10,7 @@ AFTER_REV="$(git rev-parse HEAD)"
 
 if [[ "$BEFORE_REV" == "$AFTER_REV" ]]; then
   echo "Repository already up to date."
-  pm2 reload all
+  pm2 reload all --update-env
   echo "PM2 reload completed."
   exit 0
 fi
@@ -30,6 +30,6 @@ if echo "$CHANGED_FILES" | grep -Eq '^server/drizzle/|server/db/schema.js'; then
 fi
 
 (cd client/my-app && npm run build)
-pm2 reload all
+pm2 reload all --update-env
 
 echo "Redeploy completed."
