@@ -43,6 +43,7 @@ nano server/.env
 
 Required values:
 - `DATABASE_URL=postgresql://...@<rds-endpoint>:5432/...`
+  - If your RDS instance enforces SSL, use `?sslmode=require` at the end of the URL.
 - `CLERK_JWT_ISSUER`
 - model provider keys (`GOOGLE_API_KEY` and/or `OPENAI_API_KEY`)
 - `AWS_REGION`, `S3_BUCKET_NAME`

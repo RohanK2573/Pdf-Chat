@@ -25,6 +25,8 @@ newgrp docker
 cp server/.env.production.example server/.env
 nano server/.env
 
+# If your RDS instance enforces SSL, append ?sslmode=require to DATABASE_URL
+
 # 5) Create frontend env from template
 cp client/my-app/.env.production.example client/my-app/.env.local
 nano client/my-app/.env.local
